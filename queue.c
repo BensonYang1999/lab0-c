@@ -38,6 +38,7 @@ void q_free(struct list_head *l)
     list_for_each_entry_safe (entry, safe, l, list) {
         q_release_element(entry);
     }
+    free(l);
 }
 
 /*
@@ -243,13 +244,16 @@ void q_reverse(struct list_head *head)
 {
     if (!head || list_empty(head))
         return;
-    struct list_head *node = head, *temp;
-    while (node->next != head) {
+    struct list_head *node = head->next, *temp;
+    while (node != head) {
         temp = node->prev;
         node->prev = node->next;
         node->next = temp;
         node = node->prev;
     }
+    temp = head->prev;
+    head->prev = head->next;
+    head->next = temp;
 }
 
 /*
