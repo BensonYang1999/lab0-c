@@ -58,6 +58,11 @@ bool q_insert_head(struct list_head *head, char *s)
         return false;
     // copy string
     node->value = strdup(s);
+    if (!node->value) {
+        q_release_element(node);
+        return false;
+    }
+
     list_add(&node->list, head);
     return true;
 }
@@ -79,6 +84,10 @@ bool q_insert_tail(struct list_head *head, char *s)
         return false;
     // copy string
     node->value = strdup(s);
+    if (!node->value) {
+        q_release_element(node);
+        return false;
+    }
     list_add_tail(&node->list, head);
     return true;
 }
@@ -195,16 +204,15 @@ bool q_delete_dup(struct list_head *head)
     if (!head || list_empty(head))
         return false;
     struct list_head *node = head->next, *node_del;
-    while (node != head) {
-        while (strcmp(list_entry(node, element_t, list)->value,
-                      list_entry(node->next, element_t, list)->value) == 0 &&
-               node->next != head) {
-            node_del = node;
-            node = node->next;
+    while (node->next != head) {
+        if (strcmp(list_entry(node, element_t, list)->value,
+                   list_entry(node->next, element_t, list)->value) == 0) {
+            node_del = node->next;
             list_del(node_del);
             q_release_element(list_entry(node_del, element_t, list));
+        } else {
+            node = node->next;
         }
-        node = node->next;
     }
     return true;
 }
@@ -296,19 +304,20 @@ void q_sort(struct list_head *head)
         return;
 
     // cut head link
-    struct list_head *node = head->next;
     head->prev->next = NULL;
-    head->next = NULL;
+    head->next->prev = NULL;
 
     // merge sort
-    node = mergesort(node);
+    struct list_head *sorted = mergesort(head->next);
 
     // link head & fix prev
-    head->next = node;
-    while (node->next) {
-        node->next->prev = node;
-        node = node->next;
+    head->next = sorted;
+    sorted->prev = head;
+    struct list_head *temp = sorted;
+    while (temp->next) {
+        temp->next->prev = temp;
+        temp = temp->next;
     }
-    node->next = head;
-    head->prev = node;
+    head->prev = temp;
+    temp->next = head;
 }
